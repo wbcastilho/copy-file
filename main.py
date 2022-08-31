@@ -20,7 +20,7 @@ def hide_window():
     app.withdraw()
     image = Image.open("assets/favicon.ico")
     menu = (item('Exibir', show_window), item('Sair', quit_window))
-    icon = pystray.Icon("name", image, "Monitor MQTT", menu)
+    icon = pystray.Icon("name", image, "Copy File", menu)
     icon.run()
 
 

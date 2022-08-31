@@ -2,8 +2,9 @@ import sys
 from cx_Freeze import setup, Executable
 
 build_exe_options = {
-    "packages": ["os", "tkinter", "tkinter.filedialog", "tkinter.messagebox", "pystray", "ttkbootstrap"],
-    "includes": ["tkinter", "pystray", "ttkbootstrap"]
+    "packages": ["ttkbootstrap", "ttkbootstrap.constants", "tkinter", "tkinter.filedialog", "tkinter.messagebox",
+                 "pystray"],
+    "includes": []
 }
 
 base = None
