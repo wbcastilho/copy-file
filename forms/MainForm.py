@@ -3,6 +3,7 @@ from ttkbootstrap.constants import *
 from tkinter import messagebox
 from pathlib import Path
 from tkinter import filedialog
+import shutil
 
 
 class MainForm(ttk.Frame):
@@ -16,9 +17,13 @@ class MainForm(ttk.Frame):
 
         self.source_file = ttk.StringVar()
         self.destination_path = ttk.StringVar()
+        self.sync_time = ttk.StringVar()
         self.afterid = ttk.StringVar()
 
+        self.entry_sync_time = None
         self.button_action = None
+        self.button_source_file = None
+        self.button_destination_path = None
 
         self.associate_icons()
         self.create_buttonbar()
@@ -64,28 +69,28 @@ class MainForm(ttk.Frame):
         label = ttk.Label(frame, text="Origem")
         label.grid(row=0, column=0, padx=1, sticky=ttk.E)
 
-        path = ttk.Entry(frame, width=50, state="disabled", textvariable=self.source_file)
-        path.grid(row=0, column=1, padx=2, sticky=ttk.W)
+        entry = ttk.Entry(frame, width=50, state="disabled", textvariable=self.source_file)
+        entry.grid(row=0, column=1, padx=2, sticky=ttk.W)
 
-        btn = ttk.Button(frame, text="Selecionar Arquivo", width=18, bootstyle=(INFO, OUTLINE),
-                         command=self.on_browse_file)
-        btn.grid(row=0, column=2, padx=2)
+        self.button_source_file = ttk.Button(frame, text="Selecionar Arquivo", width=18, bootstyle=(INFO, OUTLINE),
+                                             command=self.on_browse_file)
+        self.button_source_file.grid(row=0, column=2, padx=2)
 
         label = ttk.Label(frame, text="Destino")
         label.grid(row=1, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
-        path = ttk.Entry(frame, width=50, state="disabled", textvariable=self.destination_path)
-        path.grid(row=1, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
+        entry = ttk.Entry(frame, width=50, state="disabled", textvariable=self.destination_path)
+        entry.grid(row=1, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
-        btn = ttk.Button(frame, text="Selecionar Pasta", width=18, bootstyle=(INFO, OUTLINE),
-                         command=self.on_browse_folder)
-        btn.grid(row=1, column=2, padx=2, pady=(20, 0), sticky=ttk.W)
+        self.button_destination_path = ttk.Button(frame, text="Selecionar Pasta", width=18, bootstyle=(INFO, OUTLINE),
+                                                  command=self.on_browse_folder)
+        self.button_destination_path.grid(row=1, column=2, padx=2, pady=(20, 0), sticky=ttk.W)
 
         label = ttk.Label(frame, text="Tempo Sincronismo")
         label.grid(row=2, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
-        path = ttk.Entry(frame, width=15)
-        path.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
+        self.entry_sync_time = ttk.Entry(frame, width=10, justify="center", textvariable=self.sync_time)
+        self.entry_sync_time.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
     def on_browse_folder(self):
         path = filedialog.askdirectory(initialdir=r'c:\\', title="Selecionar Pasta")
@@ -97,35 +102,87 @@ class MainForm(ttk.Frame):
             ('text files', '*.txt'),
             ('All files', '*.*')
         )
-        filename = filedialog.askopenfilename(title='Selecionar Arquivo', initialdir='c:', filetypes=filetypes)
+        filename = filedialog.askopenfilename(title='Selecionar Arquivo', initialdir='c:/', filetypes=filetypes)
         if filename:
             self.source_file.set(filename)
 
     def on_action(self):
         file = self.source_file.get()
-        self.file = file.split("/")[-1]
+        self.file = self.destination_path.get() + "/" + file.split("/")[-1]
 
         if not self.start:
             if self.validate():
-                self.change_button_action_to_start(False)
+                self.change_button_action_state(False)
+                self.change_form_state(False)
                 self.start = True
                 self.after(0, self.loop)
         else:
-            self.change_button_action_to_start(True)
+            self.change_button_action_state(True)
+            self.change_form_state(True)
             self.start = False
             self.after_cancel(self.afterid.get())
 
     def loop(self):
-        print(self.destination_path.get() + "/" + self.file)
-        self.afterid.set(self.after(5000, self.loop))
+        try:
+            print(self.file)
+            shutil.copy2(self.source_file.get(), self.file)
+        except Exception as err:
+            print(err)
+            messagebox.showerror(title="Erro", message="Erro ao copiar arquivo.")
+        finally:
+            time = int(self.sync_time.get()) * 1000
+            self.afterid.set(self.after(time, self.loop))
 
     def validate(self):
-        return True
+        def validate_source_file(cls):
+            if cls.source_file.get() == "" or cls.source_file.get() is None:
+                messagebox.showwarning(title="Atenção", message="Selecione o arquivo de origem.")
+                return False
+            else:
+                return True
 
-    def change_button_action_to_start(self, value: bool) -> None:
+        def validate_destination_path(cls):
+            if cls.destination_path.get() == "" or cls.destination_path.get() is None:
+                messagebox.showwarning(title="Atenção", message="Selecione o diretório de destino.")
+                return False
+            else:
+                return True
+
+        def validate_sync_time(cls):
+            if cls.sync_time.get() == "" or cls.sync_time.get() is None:
+                messagebox.showwarning(title="Atenção", message="Selecione o tempo de sincronismo.")
+                return False
+            elif int(cls.sync_time.get()) <= 0:
+                messagebox.showwarning(title="Atenção", message="O tempo de sincronismo deve ser maior ou igual a 0.")
+                return False
+            else:
+                return True
+
+        if not validate_source_file(self):
+            return False
+        elif not validate_destination_path(self):
+            return False
+        elif not validate_sync_time(self):
+            return False
+        else:
+            return True
+
+    def change_button_action_state(self, value: bool) -> None:
         if value:
             self.button_action['image'] = 'play'
             self.button_action['text'] = 'Iniciar'
         else:
             self.button_action['image'] = 'stop'
             self.button_action['text'] = 'Parar'
+
+    def change_form_state(self, value):
+        if value:
+            self.button_source_file["state"] = "normal"
+            self.button_destination_path["state"] = "normal"
+            self.entry_sync_time["state"] = "normal"
+        else:
+            self.button_source_file["state"] = "disabled"
+            self.button_destination_path["state"] = "disabled"
+            self.entry_sync_time["state"] = "disabled"
+
+
