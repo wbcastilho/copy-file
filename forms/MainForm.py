@@ -4,6 +4,7 @@ from tkinter import messagebox
 from pathlib import Path
 from tkinter import filedialog
 import shutil
+from widgets.MaskedInt import MaskedInt
 
 
 class MainForm(ttk.Frame):
@@ -24,6 +25,9 @@ class MainForm(ttk.Frame):
         self.button_action = None
         self.button_source_file = None
         self.button_destination_path = None
+
+        masked_int = MaskedInt()
+        self.digit_func = self.register(masked_int.mask_number)
 
         self.associate_icons()
         self.create_buttonbar()
@@ -54,13 +58,13 @@ class MainForm(ttk.Frame):
         )
         self.button_action.pack(side=LEFT, ipadx=5, ipady=5, padx=(1, 0), pady=1)
 
-        btn = ttk.Button(
+        '''btn = ttk.Button(
             master=buttonbar,
             text='Configurações',
             image='settings-light',
             compound=LEFT
         )
-        btn.pack(side=LEFT, ipadx=5, ipady=5, padx=0, pady=1)
+        btn.pack(side=LEFT, ipadx=5, ipady=5, padx=0, pady=1)'''
 
     def create_path_frame(self):
         frame = ttk.Frame(self)
@@ -89,7 +93,8 @@ class MainForm(ttk.Frame):
         label = ttk.Label(frame, text="Tempo Sincronismo")
         label.grid(row=2, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
-        self.entry_sync_time = ttk.Entry(frame, width=10, justify="center", textvariable=self.sync_time)
+        self.entry_sync_time = ttk.Entry(frame, width=10, justify="center", textvariable=self.sync_time, validate="key",
+                                         validatecommand=(self.digit_func, '%S', '%P', '%d'))
         self.entry_sync_time.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
     def on_browse_folder(self):
