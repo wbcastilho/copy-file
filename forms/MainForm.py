@@ -5,6 +5,7 @@ from pathlib import Path
 from tkinter import filedialog
 import shutil
 from widgets.MaskedInt import MaskedInt
+import datetime
 
 
 class MainForm(ttk.Frame):
@@ -14,20 +15,35 @@ class MainForm(ttk.Frame):
 
         self.photoimages = []
         self.start = False
-        self.file = None
+        self.intime = False
 
         self.source_file = ttk.StringVar()
         self.destination_path = ttk.StringVar()
-        self.sync_time = ttk.StringVar()
+        self.interval = ttk.StringVar()
+        self.hour = ttk.StringVar()
+        self.minute = ttk.StringVar()
+        self.second = ttk.StringVar()
+        self.name = ttk.StringVar()
         self.afterid = ttk.StringVar()
 
-        self.entry_sync_time = None
+        self.hour_values = []
+        self.minute_values = []
+        self.second_values = []
+
+        self.entry_interval = None
+        self.combobox_hour = None
+        self.combobox_minute = None
+        self.combobox_second = None
+        self.entry_name = None
         self.button_action = None
         self.button_source_file = None
         self.button_destination_path = None
 
         masked_int = MaskedInt()
         self.digit_func = self.register(masked_int.mask_number)
+
+        self.init_combobox_hour()
+        self.init_combobox_minute_and_second()
 
         self.associate_icons()
         self.create_buttonbar()
@@ -45,6 +61,17 @@ class MainForm(ttk.Frame):
         for key, val in image_files.items():
             _path = imgpath / val
             self.photoimages.append(ttk.PhotoImage(name=key, file=_path))
+
+    def init_combobox_hour(self):
+        for i in range(0, 24):
+            number = "0" + str(i) if i < 10 else str(i)
+            self.hour_values.append(number)
+
+    def init_combobox_minute_and_second(self):
+        for i in range(0, 60):
+            number = "0" + str(i) if i < 10 else str(i)
+            self.minute_values.append(number)
+            self.second_values.append(number)
 
     def create_buttonbar(self):
         buttonbar = ttk.Frame(self, style='primary.TFrame')
@@ -90,12 +117,42 @@ class MainForm(ttk.Frame):
                                                   command=self.on_browse_folder)
         self.button_destination_path.grid(row=1, column=2, padx=2, pady=(20, 0), sticky=ttk.W)
 
-        label = ttk.Label(frame, text="Tempo Sincronismo")
+        label = ttk.Label(frame, text="Nome Arquivo")
         label.grid(row=2, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
-        self.entry_sync_time = ttk.Entry(frame, width=10, justify="center", textvariable=self.sync_time, validate="key",
-                                         validatecommand=(self.digit_func, '%S', '%P', '%d'))
-        self.entry_sync_time.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
+        self.entry_name = ttk.Entry(frame, width=50, textvariable=self.name)
+        self.entry_name.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
+
+        label = ttk.Label(frame, text="Intervalo")
+        label.grid(row=3, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
+
+        self.entry_interval = ttk.Entry(frame, width=10, justify="center", textvariable=self.interval, validate="key",
+                                        validatecommand=(self.digit_func, '%S', '%P', '%d'))
+        self.entry_interval.grid(row=3, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
+
+        label = ttk.Label(frame, text="Horário Agendamento")
+        label.grid(row=4, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
+
+        frame2 = ttk.Frame(frame)
+        frame2.grid(row=4, column=1, pady=(20, 0), sticky=ttk.W)
+
+        self.combobox_hour = ttk.Combobox(frame2, width=10, justify="center", textvariable=self.hour,
+                                          values=self.hour_values)
+        self.combobox_hour.grid(row=0, column=0, padx=2, sticky=ttk.W)
+
+        label = ttk.Label(frame2, text=":", font='Arial 10 bold',)
+        label.grid(row=0, column=1, padx=1, pady=0)
+
+        self.combobox_minute = ttk.Combobox(frame2, width=10, justify="center", textvariable=self.minute,
+                                            values=self.minute_values)
+        self.combobox_minute.grid(row=0, column=2, padx=2, sticky=ttk.W)
+
+        label = ttk.Label(frame2, text=":", font='Arial 10 bold',)
+        label.grid(row=0, column=3, padx=1, pady=0)
+
+        self.combobox_second = ttk.Combobox(frame2, width=10, justify="center", textvariable=self.second,
+                                            values=self.second_values)
+        self.combobox_second.grid(row=0, column=4, padx=2, sticky=ttk.W)
 
     def on_browse_folder(self):
         path = filedialog.askdirectory(initialdir=r'c:\\', title="Selecionar Pasta")
@@ -112,9 +169,6 @@ class MainForm(ttk.Frame):
             self.source_file.set(filename)
 
     def on_action(self):
-        file = self.source_file.get()
-        self.file = self.destination_path.get() + "/" + file.split("/")[-1]
-
         if not self.start:
             if self.validate():
                 self.change_button_action_state(False)
@@ -129,13 +183,21 @@ class MainForm(ttk.Frame):
 
     def loop(self):
         try:
-            print(self.file)
-            shutil.copy2(self.source_file.get(), self.file)
+            current_date = datetime.datetime.now()
+            if self.hour.get() == current_date.strftime("%H") and self.minute.get() == current_date.strftime("%M"):
+                if not self.intime:
+                    self.intime = True
+                    file = f"{self.destination_path.get()}/{self.name.get()}{current_date.strftime('%d_%m_%y')}.txt"
+                    print(file)
+                    shutil.copy2(self.source_file.get(), file)
+            else:
+                self.intime = False
         except Exception as err:
             print(err)
+            self.intime = False
             messagebox.showerror(title="Erro", message="Erro ao copiar arquivo.")
         finally:
-            time = int(self.sync_time.get()) * 1000
+            time = int(self.interval.get()) * 1000
             self.afterid.set(self.after(time, self.loop))
 
     def validate(self):
@@ -143,34 +205,80 @@ class MainForm(ttk.Frame):
             if cls.source_file.get() == "" or cls.source_file.get() is None:
                 messagebox.showwarning(title="Atenção", message="Selecione o arquivo de origem.")
                 return False
-            else:
-                return True
+            return True
 
         def validate_destination_path(cls):
             if cls.destination_path.get() == "" or cls.destination_path.get() is None:
                 messagebox.showwarning(title="Atenção", message="Selecione o diretório de destino.")
                 return False
-            else:
-                return True
+            return True
 
-        def validate_sync_time(cls):
-            if cls.sync_time.get() == "" or cls.sync_time.get() is None:
-                messagebox.showwarning(title="Atenção", message="Selecione o tempo de sincronismo.")
+        def validate_interval(cls):
+            if cls.interval.get() == "" or cls.interval.get() is None:
+                messagebox.showwarning(title="Atenção", message="O campo intervalo deve ser preenchido.")
                 return False
-            elif int(cls.sync_time.get()) <= 0:
+            elif int(cls.interval.get()) <= 0:
                 messagebox.showwarning(title="Atenção", message="O tempo de sincronismo deve ser maior ou igual a 0.")
                 return False
-            else:
-                return True
+            return True
+
+        def validate_combobox_hour(cls):
+            if cls.hour.get() == "" or cls.hour.get() is None:
+                messagebox.showwarning(title="Atenção", message="O campo hora dever ser selecionado.")
+                return False
+            elif not cls.hour.get().isdigit():
+                messagebox.showwarning(title="Atenção", message="Hora inválida")
+                return False
+            elif int(cls.hour.get()) > 23 or int(cls.hour.get()) < 0:
+                messagebox.showwarning(title="Atenção", message="Hora inválida")
+                return False
+            return True
+
+        def validate_combobox_minute(cls):
+            if cls.minute.get() == "" or cls.minute.get() is None:
+                messagebox.showwarning(title="Atenção", message="O campo minuto dever ser selecionado.")
+                return False
+            elif not cls.minute.get().isdigit():
+                messagebox.showwarning(title="Atenção", message="Minuto inválida")
+                return False
+            elif int(cls.minute.get()) > 59 or int(cls.minute.get()) < 0:
+                messagebox.showwarning(title="Atenção", message="Minuto inválida")
+                return False
+            return True
+
+        def validate_combobox_second(cls):
+            if cls.second.get() == "" or cls.second.get() is None:
+                messagebox.showwarning(title="Atenção", message="O campo segundo dever ser selecionado.")
+                return False
+            elif not cls.second.get().isdigit():
+                messagebox.showwarning(title="Atenção", message="Segundo inválida")
+                return False
+            elif int(cls.second.get()) > 59 or int(cls.second.get()) < 0:
+                messagebox.showwarning(title="Atenção", message="Segundo inválida")
+                return False
+            return True
+
+        def validate_name(cls):
+            if cls.name.get() == "" or cls.name.get() is None:
+                messagebox.showwarning(title="Atenção", message="O campo nome deve ser preenchido.")
+                return False
+            return True
 
         if not validate_source_file(self):
             return False
         elif not validate_destination_path(self):
             return False
-        elif not validate_sync_time(self):
+        elif not validate_name(self):
             return False
-        else:
-            return True
+        elif not validate_interval(self):
+            return False
+        elif not validate_combobox_hour(self):
+            return False
+        elif not validate_combobox_minute(self):
+            return False
+        elif not validate_combobox_second(self):
+            return False
+        return True
 
     def change_button_action_state(self, value: bool) -> None:
         if value:
@@ -184,10 +292,19 @@ class MainForm(ttk.Frame):
         if value:
             self.button_source_file["state"] = "normal"
             self.button_destination_path["state"] = "normal"
-            self.entry_sync_time["state"] = "normal"
+            self.entry_interval["state"] = "normal"
+            self.combobox_hour["state"] = "normal"
+            self.combobox_minute["state"] = "normal"
+            self.combobox_second["state"] = "normal"
+            self.entry_name["state"] = "normal"
         else:
             self.button_source_file["state"] = "disabled"
             self.button_destination_path["state"] = "disabled"
-            self.entry_sync_time["state"] = "disabled"
+            self.entry_interval["state"] = "disabled"
+            self.combobox_hour["state"] = "disabled"
+            self.combobox_minute["state"] = "disabled"
+            self.combobox_second["state"] = "disabled"
+            self.entry_name["state"] = "disabled"
+
 
 
