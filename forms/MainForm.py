@@ -42,9 +42,7 @@ class MainForm(ttk.Frame):
         masked_int = MaskedInt()
         self.digit_func = self.register(masked_int.mask_number)
 
-        self.init_combobox_hour()
-        self.init_combobox_minute_and_second()
-
+        self.init_combobox()
         self.associate_icons()
         self.create_buttonbar()
         self.create_path_frame()
@@ -62,14 +60,11 @@ class MainForm(ttk.Frame):
             _path = imgpath / val
             self.photoimages.append(ttk.PhotoImage(name=key, file=_path))
 
-    def init_combobox_hour(self):
-        for i in range(0, 24):
-            number = "0" + str(i) if i < 10 else str(i)
-            self.hour_values.append(number)
-
-    def init_combobox_minute_and_second(self):
+    def init_combobox(self):
         for i in range(0, 60):
             number = "0" + str(i) if i < 10 else str(i)
+            if i <= 23:
+                self.hour_values.append(number)
             self.minute_values.append(number)
             self.second_values.append(number)
 
