@@ -19,7 +19,6 @@ class MainForm(ttk.Frame):
 
         self.source_file = ttk.StringVar()
         self.destination_path = ttk.StringVar()
-        self.interval = ttk.StringVar()
         self.hour = ttk.StringVar()
         self.minute = ttk.StringVar()
         self.second = ttk.StringVar()
@@ -30,7 +29,6 @@ class MainForm(ttk.Frame):
         self.minute_values = []
         self.second_values = []
 
-        self.entry_interval = None
         self.combobox_hour = None
         self.combobox_minute = None
         self.combobox_second = None
@@ -118,13 +116,6 @@ class MainForm(ttk.Frame):
         self.entry_name = ttk.Entry(frame, width=50, textvariable=self.name, validate="key",
                                     validatecommand=(self.entry_func, '%P', '%d', '30'))
         self.entry_name.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
-
-        label = ttk.Label(frame, text="Intervalo")
-        label.grid(row=3, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
-
-        self.entry_interval = ttk.Entry(frame, width=10, justify="center", textvariable=self.interval, validate="key",
-                                        validatecommand=(self.number_func, '%S', '%P', '%d', '3'))
-        self.entry_interval.grid(row=3, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
         label = ttk.Label(frame, text="Horário Agendamento")
         label.grid(row=4, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
@@ -226,8 +217,7 @@ class MainForm(ttk.Frame):
             self.intime = False
             self.change_state_of_label_state_copy(False)
         finally:
-            time = int(self.interval.get()) * 1000
-            self.afterid.set(self.after(time, self.loop))
+            self.afterid.set(self.after(1000, self.loop))
 
     def change_state_of_label_state_copy(self, value: bool):
         if value:
@@ -251,15 +241,6 @@ class MainForm(ttk.Frame):
         def validate_destination_path(cls):
             if cls.destination_path.get() == "" or cls.destination_path.get() is None:
                 messagebox.showwarning(title="Atenção", message="Selecione o diretório de destino.")
-                return False
-            return True
-
-        def validate_interval(cls):
-            if cls.interval.get() == "" or cls.interval.get() is None:
-                messagebox.showwarning(title="Atenção", message="O campo intervalo deve ser preenchido.")
-                return False
-            elif int(cls.interval.get()) <= 0:
-                messagebox.showwarning(title="Atenção", message="O tempo de sincronismo deve ser maior ou igual a 0.")
                 return False
             return True
 
@@ -311,8 +292,6 @@ class MainForm(ttk.Frame):
             return False
         elif not validate_name(self):
             return False
-        elif not validate_interval(self):
-            return False
         elif not validate_hour(self):
             return False
         elif not validate_minute(self):
@@ -342,7 +321,6 @@ class MainForm(ttk.Frame):
             if value:
                 cls.button_source_file["state"] = "normal"
                 cls.button_destination_path["state"] = "normal"
-                cls.entry_interval["state"] = "normal"
                 cls.combobox_hour["state"] = "normal"
                 cls.combobox_minute["state"] = "normal"
                 cls.combobox_second["state"] = "normal"
@@ -350,7 +328,6 @@ class MainForm(ttk.Frame):
             else:
                 self.button_source_file["state"] = "disabled"
                 self.button_destination_path["state"] = "disabled"
-                self.entry_interval["state"] = "disabled"
                 self.combobox_hour["state"] = "disabled"
                 self.combobox_minute["state"] = "disabled"
                 self.combobox_second["state"] = "disabled"
