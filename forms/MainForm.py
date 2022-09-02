@@ -1,11 +1,11 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from tkinter import messagebox
-from pathlib import Path
 from tkinter import filedialog
-import shutil
-from widgets.MaskedInt import MaskedInt
+from widgets.MaskedEntry import MaskedEntry
+from pathlib import Path
 import datetime
+import shutil
 
 
 class MainForm(ttk.Frame):
@@ -38,14 +38,19 @@ class MainForm(ttk.Frame):
         self.button_action = None
         self.button_source_file = None
         self.button_destination_path = None
+        self.label_state = None
+        self.label_state_copy = None
+        self.label_last_date = None
 
-        masked_int = MaskedInt()
-        self.digit_func = self.register(masked_int.mask_number)
+        masked_entry = MaskedEntry()
+        self.number_func = self.register(masked_entry.mask_number)
+        self.entry_func = self.register(masked_entry.mask_entry)
 
         self.init_combobox()
         self.associate_icons()
         self.create_buttonbar()
-        self.create_path_frame()
+        self.create_form_frame()
+        self.create_status_frame()
 
     def associate_icons(self):
         image_files = {
@@ -80,17 +85,12 @@ class MainForm(ttk.Frame):
         )
         self.button_action.pack(side=LEFT, ipadx=5, ipady=5, padx=(1, 0), pady=1)
 
-        '''btn = ttk.Button(
-            master=buttonbar,
-            text='Configurações',
-            image='settings-light',
-            compound=LEFT
-        )
-        btn.pack(side=LEFT, ipadx=5, ipady=5, padx=0, pady=1)'''
+    def create_form_frame(self):
+        label_frame = ttk.Labelframe(self, text='Cópia')
+        label_frame.pack(fill="x", padx=10, pady=(10, 5))
 
-    def create_path_frame(self):
-        frame = ttk.Frame(self)
-        frame.pack(fill="x", padx=20, pady=15)
+        frame = ttk.Frame(label_frame)
+        frame.pack(fill="x", padx=20, pady=(15, 20))
 
         label = ttk.Label(frame, text="Origem")
         label.grid(row=0, column=0, padx=1, sticky=ttk.E)
@@ -115,14 +115,15 @@ class MainForm(ttk.Frame):
         label = ttk.Label(frame, text="Nome Arquivo")
         label.grid(row=2, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
-        self.entry_name = ttk.Entry(frame, width=50, textvariable=self.name)
+        self.entry_name = ttk.Entry(frame, width=50, textvariable=self.name, validate="key",
+                                    validatecommand=(self.entry_func, '%P', '%d', '30'))
         self.entry_name.grid(row=2, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
         label = ttk.Label(frame, text="Intervalo")
         label.grid(row=3, column=0, padx=1, pady=(20, 0), sticky=ttk.E)
 
         self.entry_interval = ttk.Entry(frame, width=10, justify="center", textvariable=self.interval, validate="key",
-                                        validatecommand=(self.digit_func, '%S', '%P', '%d'))
+                                        validatecommand=(self.number_func, '%S', '%P', '%d', '3'))
         self.entry_interval.grid(row=3, column=1, padx=2, pady=(20, 0), sticky=ttk.W)
 
         label = ttk.Label(frame, text="Horário Agendamento")
@@ -149,6 +150,40 @@ class MainForm(ttk.Frame):
                                             values=self.second_values)
         self.combobox_second.grid(row=0, column=4, padx=2, sticky=ttk.W)
 
+    def create_status_frame(self):
+        label_frame = ttk.Labelframe(self, text='Status', )
+        label_frame.pack(fill="x", padx=10, pady=(5, 20))
+
+        frame_size = ttk.Frame(label_frame, width=70)
+        frame_size.pack()
+
+        frame = ttk.Frame(frame_size, borderwidth=1, relief="sunken", width=100)
+        frame.pack(fill="both", padx=10, pady=(10, 20))
+
+        label = ttk.Label(frame, text=" Descrição", font='Arial 8 bold', width=40, bootstyle="inverse-primary")
+        label.grid(row=0, column=0, sticky=ttk.W)
+
+        label = ttk.Label(frame, text=" Status", font='Arial 8 bold', width=30, bootstyle="inverse-primary")
+        label.grid(row=0, column=1, sticky=ttk.W)
+
+        label = ttk.Label(frame, text=" Execução")
+        label.grid(row=1, column=0, sticky=ttk.W)
+
+        self.label_state = ttk.Label(frame, text=" Parado", font='Arial 8 bold', bootstyle="danger")
+        self.label_state.grid(row=1, column=1, sticky=ttk.W)
+
+        label = ttk.Label(frame, text=" Situação da última cópia")
+        label.grid(row=2, column=0, sticky=ttk.W)
+
+        self.label_state_copy = ttk.Label(frame, text=" -", font='Arial 8 bold', bootstyle="danger")
+        self.label_state_copy.grid(row=2, column=1, sticky=ttk.W)
+
+        label = ttk.Label(frame, text=" Data da última cópia realizada")
+        label.grid(row=3, column=0, sticky=ttk.W)
+
+        self.label_last_date = ttk.Label(frame, text=" -", font='Arial 8 bold', bootstyle="danger")
+        self.label_last_date.grid(row=3, column=1, sticky=ttk.W)
+
     def on_browse_folder(self):
         path = filedialog.askdirectory(initialdir=r'c:\\', title="Selecionar Pasta")
         if path:
@@ -166,14 +201,12 @@ class MainForm(ttk.Frame):
     def on_action(self):
         if not self.start:
             if self.validate():
-                self.change_button_action_state(False)
-                self.change_form_state(False)
                 self.start = True
+                self.change_action_state(False)
                 self.after(0, self.loop)
         else:
-            self.change_button_action_state(True)
-            self.change_form_state(True)
             self.start = False
+            self.change_action_state(True)
             self.after_cancel(self.afterid.get())
 
     def loop(self):
@@ -183,17 +216,30 @@ class MainForm(ttk.Frame):
                 if not self.intime:
                     self.intime = True
                     file = f"{self.destination_path.get()}/{self.name.get()}{current_date.strftime('%d_%m_%y')}.txt"
-                    print(file)
                     shutil.copy2(self.source_file.get(), file)
+                    self.change_state_of_label_state_copy(True)
+                    self.show_datetime_in_label_last_date(current_date)
+                    print(file)
             else:
                 self.intime = False
-        except Exception as err:
-            print(err)
+        except Exception:
             self.intime = False
-            messagebox.showerror(title="Erro", message="Erro ao copiar arquivo.")
+            self.change_state_of_label_state_copy(False)
         finally:
             time = int(self.interval.get()) * 1000
             self.afterid.set(self.after(time, self.loop))
+
+    def change_state_of_label_state_copy(self, value: bool):
+        if value:
+            self.label_state_copy["bootstyle"] = "success"
+            self.label_state_copy["text"] = " OK"
+        else:
+            self.label_state_copy["bootstyle"] = "danger"
+            self.label_state_copy["text"] = " Falha"
+
+    def show_datetime_in_label_last_date(self, current_date):
+        self.label_last_date["bootstyle"] = "success"
+        self.label_last_date["text"] = current_date.strftime('%d/%m/%y %H:%M:%S')
 
     def validate(self):
         def validate_source_file(cls):
@@ -217,7 +263,7 @@ class MainForm(ttk.Frame):
                 return False
             return True
 
-        def validate_combobox_hour(cls):
+        def validate_hour(cls):
             if cls.hour.get() == "" or cls.hour.get() is None:
                 messagebox.showwarning(title="Atenção", message="O campo hora dever ser selecionado.")
                 return False
@@ -229,7 +275,7 @@ class MainForm(ttk.Frame):
                 return False
             return True
 
-        def validate_combobox_minute(cls):
+        def validate_minute(cls):
             if cls.minute.get() == "" or cls.minute.get() is None:
                 messagebox.showwarning(title="Atenção", message="O campo minuto dever ser selecionado.")
                 return False
@@ -241,7 +287,7 @@ class MainForm(ttk.Frame):
                 return False
             return True
 
-        def validate_combobox_second(cls):
+        def validate_second(cls):
             if cls.second.get() == "" or cls.second.get() is None:
                 messagebox.showwarning(title="Atenção", message="O campo segundo dever ser selecionado.")
                 return False
@@ -267,39 +313,50 @@ class MainForm(ttk.Frame):
             return False
         elif not validate_interval(self):
             return False
-        elif not validate_combobox_hour(self):
+        elif not validate_hour(self):
             return False
-        elif not validate_combobox_minute(self):
+        elif not validate_minute(self):
             return False
-        elif not validate_combobox_second(self):
+        elif not validate_second(self):
             return False
         return True
 
-    def change_button_action_state(self, value: bool) -> None:
-        if value:
-            self.button_action['image'] = 'play'
-            self.button_action['text'] = 'Iniciar'
-        else:
-            self.button_action['image'] = 'stop'
-            self.button_action['text'] = 'Parar'
+    def change_action_state(self, value):
+        def change_button_action_state(cls) -> None:
+            if value:
+                cls.button_action['image'] = 'play'
+                cls.button_action['text'] = 'Iniciar'
+            else:
+                cls.button_action['image'] = 'stop'
+                cls.button_action['text'] = 'Parar'
 
-    def change_form_state(self, value):
-        if value:
-            self.button_source_file["state"] = "normal"
-            self.button_destination_path["state"] = "normal"
-            self.entry_interval["state"] = "normal"
-            self.combobox_hour["state"] = "normal"
-            self.combobox_minute["state"] = "normal"
-            self.combobox_second["state"] = "normal"
-            self.entry_name["state"] = "normal"
-        else:
-            self.button_source_file["state"] = "disabled"
-            self.button_destination_path["state"] = "disabled"
-            self.entry_interval["state"] = "disabled"
-            self.combobox_hour["state"] = "disabled"
-            self.combobox_minute["state"] = "disabled"
-            self.combobox_second["state"] = "disabled"
-            self.entry_name["state"] = "disabled"
+        def change_state_of_label_state(cls):
+            if value:
+                cls.label_state["bootstyle"] = "danger"
+                cls.label_state["text"] = " Parado"
+            else:
+                cls.label_state["bootstyle"] = "success"
+                cls.label_state["text"] = " Rodando"
 
+        def change_state_of_form_widgets(cls):
+            if value:
+                cls.button_source_file["state"] = "normal"
+                cls.button_destination_path["state"] = "normal"
+                cls.entry_interval["state"] = "normal"
+                cls.combobox_hour["state"] = "normal"
+                cls.combobox_minute["state"] = "normal"
+                cls.combobox_second["state"] = "normal"
+                cls.entry_name["state"] = "normal"
+            else:
+                self.button_source_file["state"] = "disabled"
+                self.button_destination_path["state"] = "disabled"
+                self.entry_interval["state"] = "disabled"
+                self.combobox_hour["state"] = "disabled"
+                self.combobox_minute["state"] = "disabled"
+                self.combobox_second["state"] = "disabled"
+                self.entry_name["state"] = "disabled"
 
+        change_button_action_state(self)
+        change_state_of_form_widgets(self)
+        change_state_of_label_state(self)
 
