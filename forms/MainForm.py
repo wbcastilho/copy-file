@@ -206,7 +206,7 @@ class MainForm(ttk.Frame):
             if self.hour.get() == current_date.strftime("%H") and self.minute.get() == current_date.strftime("%M"):
                 if not self.intime:
                     self.intime = True
-                    file = f"{self.destination_path.get()}/{self.name.get()}{current_date.strftime('%d_%m_%y')}.txt"
+                    file = f"{self.destination_path.get()}/{self.name.get()}.txt"
                     shutil.copy2(self.source_file.get(), file)
                     self.change_state_of_label_state_copy(True)
                     self.show_datetime_in_label_last_date(current_date)
