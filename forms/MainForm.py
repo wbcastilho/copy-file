@@ -217,7 +217,8 @@ class MainForm(ttk.Frame):
             self.intime = False
             self.change_state_of_label_state_copy(False)
         finally:
-            self.afterid.set(self.after(1000, self.loop))
+            one_second = 1000
+            self.afterid.set(self.after(one_second, self.loop))
 
     def change_state_of_label_state_copy(self, value: bool):
         if value:
