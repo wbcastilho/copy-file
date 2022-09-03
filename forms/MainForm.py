@@ -210,7 +210,6 @@ class MainForm(ttk.Frame):
                     shutil.copy2(self.source_file.get(), file)
                     self.change_state_of_label_state_copy(True)
                     self.show_datetime_in_label_last_date(current_date)
-                    print(file)
             else:
                 self.intime = False
         except Exception:
